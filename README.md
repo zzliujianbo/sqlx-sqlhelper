@@ -1,21 +1,40 @@
 # sqlx-sqlhelper
-基于`sqlx`和`过程宏`实现的`sqlhelper`生成。
-
-目前只支持`sqlx`的`mysql`生成。
+基于`sqlx`和`过程宏`实现的`sqlhelper`生成，目前只支持`mysql`数据库。
 ## 依赖
-需要首先在您的项目中添加`sqlx`的依赖。
+需要首先在您的`Cargo.toml`中添加`sqlx`和`chrono`的依赖。
 ``` toml
 sqlx = {version = "0.6", features = ["runtime-tokio-rustls", "mysql", "chrono", "decimal"]}
+chrono = "0.4.23"
 ```
 ## 实现的宏
 ### SqlHelper
 `SqlHelper`是`derive`过程宏。主要实现了`struct`的`find`、`list`、`delete`、`add`、`update`、`save_or_update`、`new`、`new_common`、`base_page`、`base_count`等常用查询方法。
+
+|属性|描述|
+|:--:|:--|
+|#[id]|主键字段，`find`、`delete`、`save_or_update`等方法会以此字段增删改查等。|
+|#[create_time]|表示当前字段为create_time字段，`insert_auto_time`、`save_or_update_auto_time`等带`auto_time`后缀会自动更新`create_time`字段|
+|#[update_time]|和`create_time`属性同理。|
+
 ### common_fields
 `common_fields`类属性宏对常用`id`、`create_time`、`update_time`等字段的自动添加。依赖`SqlHelper`宏。
+
+|字段名字|字段类型|
+|:--:|:--:|
+|id|i32|
+|create_time|chrono::NaiveDateTime|
+|update_time|chrono::NaiveDateTime|
+
 ### sql_args
 `sql_args`声明宏主要是为了方便生成`sqlx`的`MySqlArguments`对象。
 ``` rust
 let (sql, args) = sql_args!("user_name = ?", "张三");
+```
+在使用`base_page`、`base_count`等方法时，需要传递`sql`片段，可以通过`sql_args`宏生成。
+``` rust
+let (sql, args) = sql_args!("user_name = ?", "张三");
+let page = User::base_page(page_index, page_size, sql, args)
+            .await;
 ```
 ## 使用方法
 1、创建一个`db.rs`文件，代码如下。
@@ -46,12 +65,12 @@ lazy_static! {
 //此处use需要根据db.rs位置进行引用。
 use super::db;
 
-use billing_api_macros::{common_fields, SqlHelper};
+use sqlx_sqlhelper::{common_fields, SqlHelper};
 use chrono::NaiveDateTime;
 use poem_openapi::Object;
 
 /// 用户表
-#[common_fields]
+#[common_fields] //common_fields会自动添加id、create_time、update_time字段。
 #[derive(sqlx::FromRow, Debug, Object, SqlHelper)]
 pub struct User {
     /// 登录账号
