@@ -1,6 +1,10 @@
 [package]
+description = "基于sqlx和过程宏实现的sqlhelper"
+documentation = "https://docs.rs/sqlx-sqlhelper-proc-macros"
 edition = "2021"
-name = "proc-macros"
+license = "Apache-2.0"
+name = "sqlx-sqlhelper-proc-macros"
+repository = "https://github.com/zzliujianbo/sqlx-sqlhelper"
 version = "0.1.0"
 
 [lib]
