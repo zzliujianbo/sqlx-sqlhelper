@@ -1,3 +1,9 @@
+[workspace]
+members = [
+  ".",
+  "sqlx-sqlhelper-proc-macros",
+]
+
 [package]
 description = "基于sqlx和过程宏实现的sqlhelper"
 documentation = "https://docs.rs/sqlx-sqlhelper"
