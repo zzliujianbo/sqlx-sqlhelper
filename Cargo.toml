@@ -2,7 +2,11 @@
 name = "sqlx-sqlhelper"
 version = "0.1.0"
 edition = "2021"
-
+description = "基于sqlx和过程宏实现的sqlhelper"
+documentation = "https://docs.rs/sqlx-sqlhelper"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/zzliujianbo/sqlx-sqlhelper"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
