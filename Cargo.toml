@@ -1,13 +1,13 @@
 [package]
-name = "sqlx-sqlhelper"
-version = "0.1.0"
-edition = "2021"
 description = "基于sqlx和过程宏实现的sqlhelper"
 documentation = "https://docs.rs/sqlx-sqlhelper"
+edition = "2021"
 license = "Apache-2.0"
+name = "sqlx-sqlhelper"
 readme = "README.md"
 repository = "https://github.com/zzliujianbo/sqlx-sqlhelper"
+version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-proc-macros = {path = "proc-macros"}
+proc-macros = {path = "proc-macros", version = "0.1.0"}
