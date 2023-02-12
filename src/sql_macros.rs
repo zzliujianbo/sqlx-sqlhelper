@@ -1,7 +1,15 @@
 /// 构造一个元组对象(&str, MySqlArguments)
+/// 
+/// 需要引入`sqlx::Arguments`
+/// 
+/// ```
+/// use sqlx::Arguments;
+/// ```
+/// 
 /// # Examples
 ///
 /// ```
+/// use sqlx::Arguments;
 /// let (sql, args) = sql_args!("id = ? AND name = ? AND age = ?", id, &name, age);
 /// ```
 #[macro_export]
