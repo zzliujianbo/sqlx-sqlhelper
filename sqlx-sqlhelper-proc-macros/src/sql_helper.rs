@@ -444,9 +444,9 @@ fn get_auto_time_quote(
 
 fn get_update_time_quote(struct_ident: &Ident, time_ident: &Ident) -> TokenStream2 {
     quote!(
-        if #struct_ident.#time_ident == Default::default() {
+        //if #struct_ident.#time_ident == Default::default() {
             #struct_ident.#time_ident = chrono::Local::now().naive_local();
-        }
+        //}
     )
 }
 
