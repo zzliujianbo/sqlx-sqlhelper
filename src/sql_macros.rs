@@ -21,7 +21,12 @@ macro_rules! sql_args {
 
     ($sql:expr, $($args:expr),*) => {{
         let mut mysql_args = sqlx::mysql::MySqlArguments::default();
-        $(mysql_args.add($args);)*
+        $(match mysql_args.add($args){
+            Ok(_) => {},
+            Err(e) => {
+                warn!("add mysql args error: {}, {}", e, $args);
+            }
+        };)*
         ($sql, mysql_args)
     }};
 }
