@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use inflector::Inflector;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
@@ -9,7 +11,7 @@ use crate::{DEFAULT_CREATE_TIME_NAME, DEFAULT_ID_NAME, DEFAULT_UPDATE_TIME_NAME}
 pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     //初始化model，默认model实现，分页model实现等。初始化获取一个model
 
-    let mut filed_vec = Vec::new();
+    let mut field_vec = Vec::new();
     ast.fields.iter().for_each(|field| {
         if is_vis_public_crate(&field.vis)
             && is_base_type(field)
@@ -20,11 +22,11 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
                     return;
                 }
             }
-            filed_vec.push(field);
+            field_vec.push(field);
         }
     });
 
-    let table_filed_name_vec = filed_vec
+    let table_field_name_vec = field_vec
         .iter()
         //.map(|field| field.ident.as_ref().unwrap().to_string())
         .map(|field| get_table_field_name(field))
@@ -35,6 +37,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     let self_ident = format_ident!("self");
     //let varname = format_ident!("_{}", ident);
     let struct_var_name = format_ident!("{}", struct_name.to_string().to_snake_case());
+    let table_name = format!("`{}`", struct_var_name);
     let id = get_ident(&ast.fields, DEFAULT_ID_NAME);
     let create_time = get_ident(&ast.fields, DEFAULT_CREATE_TIME_NAME);
     let update_time = get_ident(&ast.fields, DEFAULT_UPDATE_TIME_NAME);
@@ -44,14 +47,23 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
 
     let select_base_sql = format!(
         "SELECT {}, {} FROM {}",
-        id,
-        table_filed_name_vec.join(", ").trim_end(),
-        struct_var_name
+        field_to_sql_quote(&id.to_string()),
+        table_field_name_vec
+            .iter()
+            .map(|field| field_to_sql_quote(field))
+            .collect::<Vec<_>>()
+            .join(", ")
+            .trim_end(),
+        table_name
     );
-    let count_base_sql = format!("SELECT count(1) FROM {}", struct_var_name);
+    let count_base_sql = format!("SELECT count(1) FROM {}", table_name);
 
     //查找函数
-    let find_sql = format!("{} WHERE {} = ?", select_base_sql, id);
+    let find_sql = format!(
+        "{} WHERE {} = ?",
+        select_base_sql,
+        field_to_sql_quote(&id.to_string())
+    );
     let find_fn = quote!(
         pub async fn find(#id: i32) -> Result<Self, sqlx::Error> {
             //sqlx::query_as::<_, Self>(&format!(
@@ -75,7 +87,11 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     );
 
     //删除函数
-    let delete_sql = format!("DELETE FROM {} WHERE {} = ?", struct_var_name, id);
+    let delete_sql = format!(
+        "DELETE FROM {} WHERE {} = ?",
+        table_name,
+        field_to_sql_quote(&id.to_string())
+    );
     let delete_fn = quote!(
         pub async fn delete(&self) -> Result<bool, sqlx::Error> {
             #query(#delete_sql)
@@ -89,15 +105,20 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     //新增函数
     let insert_sql = format!(
         "INSERT INTO {} ({}) VALUES({})",
-        struct_var_name,
-        table_filed_name_vec.join(", ").trim_end(),
+        table_name,
+        table_field_name_vec
+            .iter()
+            .map(|field| field_to_sql_quote(field))
+            .collect::<Vec<_>>()
+            .join(", ")
+            .trim_end(),
         "?, "
-            .repeat(filed_vec.len())
+            .repeat(field_vec.len())
             .trim_end()
             .trim_end_matches(',')
     );
 
-    let insert_bind_quote_vec = fileds_to_bind_quote(&self_ident, &filed_vec);
+    let insert_bind_quote_vec = fields_to_bind_quote(&self_ident, &field_vec);
     let insert_auto_time_quote = get_auto_time_quote(&self_ident, Some(&create_time), &update_time);
     //pub async fn add(#struct_var_name:&Self) -> Result<Self, sqlx::Error> {
     //    let sql = #add_sql;
@@ -128,16 +149,16 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     //更新函数
     let update_sql = format!(
         "UPDATE {} SET {} WHERE {} = ?",
-        struct_var_name,
-        table_filed_name_vec
+        table_name,
+        table_field_name_vec
             .iter()
-            .map(|filed_str| format!("{} = ?", filed_str))
+            .map(|field_str| format!("{} = ?", field_to_sql_quote(field_str)))
             .collect::<Vec<_>>()
             .join(", "),
-        id
+        field_to_sql_quote(&id.to_string())
     );
 
-    let update_bind_quote_vec = fileds_to_bind_quote(&self_ident, &filed_vec);
+    let update_bind_quote_vec = fields_to_bind_quote(&self_ident, &field_vec);
 
     let update_auto_time_quote = get_auto_time_quote(&self_ident, None, &update_time);
     let update_fn = quote!(
@@ -191,8 +212,8 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         }
     );
 
-    let mut new_auto_filed_vec = vec![];
-    for field in &filed_vec {
+    let mut new_auto_field_vec = vec![];
+    for field in &field_vec {
         if !field_attr_exists(field, DEFAULT_CREATE_TIME_NAME)
             && !field_attr_exists(field, DEFAULT_UPDATE_TIME_NAME)
         {
@@ -202,10 +223,10 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
                 }
             }
 
-            new_auto_filed_vec.push(field);
+            new_auto_field_vec.push(field);
         }
     }
-    let new_filed_vec = new_auto_filed_vec
+    let new_field_vec = new_auto_field_vec
         .iter()
         .map(|f| {
             let ident = f.ident.as_ref().unwrap();
@@ -214,7 +235,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    let new_self_filed_vec = new_auto_filed_vec
+    let new_self_field_vec = new_auto_field_vec
         .iter()
         .map(|f| {
             let ident = f.ident.as_ref().unwrap();
@@ -223,17 +244,17 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         .collect::<Vec<_>>();
 
     let new_fn = quote!(
-        pub fn new(#(#new_filed_vec),*,#create_time: chrono::NaiveDateTime, #update_time: chrono::NaiveDateTime) -> Self {
+        pub fn new(#(#new_field_vec),*,#create_time: chrono::NaiveDateTime, #update_time: chrono::NaiveDateTime) -> Self {
             Self{
                 #id: 0,
-                #(#new_self_filed_vec),*,
+                #(#new_self_field_vec),*,
                 #create_time,
                 #update_time
             }
         }
-        pub fn new_common(#(#new_filed_vec),*) -> Self {
+        pub fn new_common(#(#new_field_vec),*) -> Self {
             Self::new(
-                #(#new_self_filed_vec),*,
+                #(#new_self_field_vec),*,
                 chrono::Local::now().naive_local(),
                 chrono::Local::now().naive_local()
             )
@@ -321,29 +342,33 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     gen.into()
 }
 
-fn fileds_to_bind_quote(struct_ident: &Ident, fields: &Vec<&Field>) -> Vec<TokenStream2> {
+fn field_to_sql_quote(field: &str) -> String {
+    format!("`{}`", field)
+}
+
+fn fields_to_bind_quote(struct_ident: &Ident, fields: &Vec<&Field>) -> Vec<TokenStream2> {
     fields
         .iter()
-        .map(|field| filed_to_bind_quote(&struct_ident, field))
+        .map(|field| field_to_bind_quote(&struct_ident, field))
         .collect()
 }
 
-fn filed_to_bind_quote(struct_ident: &Ident, filed: &Field) -> TokenStream2 {
-    //此处&filed.ty会自动解引用，不用在通过ref关键字借用typePath。
+fn field_to_bind_quote(struct_ident: &Ident, field: &Field) -> TokenStream2 {
+    //此处&field.ty会自动解引用，不用在通过ref关键字借用typePath。
     //参考：https://rust-lang.github.io/rfcs/2005-match-ergonomics.html
     //https://doc.rust-lang.org/std/keyword.ref.html
     //Type::Path(ref p) = field.ty
-    let syn::Type::Path(type_path) = &filed.ty else {
+    let syn::Type::Path(type_path) = &field.ty else {
         return quote!();
     };
-    let Some(filed_var_name) = &filed.ident else {
+    let Some(field_var_name) = &field.ident else {
         return quote!();
     };
-    //let filed_quote = type_path.path.is_ident("NaiveDateTime");
-    //eprintln!("{:?}", extract_type_from_option(&filed.ty));
+    //let field_quote = type_path.path.is_ident("NaiveDateTime");
+    //eprintln!("{:?}", extract_type_from_option(&field.ty));
 
-    let filed_qoute = if extract_type_from_option(&filed.ty).is_some() {
-        quote!(#struct_ident.#filed_var_name.as_ref())
+    let field_qoute = if extract_type_from_option(&field.ty).is_some() {
+        quote!(#struct_ident.#field_var_name.as_ref())
     } else {
         //此处判断还有一些问题，如果struct的字段类型不带路径，则能正常判断。
         //比如：pub create_name:NaiveDateTime这种方式声明则没有问题。
@@ -352,16 +377,16 @@ fn filed_to_bind_quote(struct_ident: &Ident, filed: &Field) -> TokenStream2 {
         match type_path.path.get_ident() {
             Some(ident) => {
                 if ident == "String" || ident == "Decimal" {
-                    quote!(&#struct_ident.#filed_var_name)
+                    quote!(&#struct_ident.#field_var_name)
                 } else {
-                    quote!(#struct_ident.#filed_var_name)
+                    quote!(#struct_ident.#field_var_name)
                 }
             }
             _ => quote!(),
         }
     };
     quote!(
-        .bind(#filed_qoute)
+        .bind(#field_qoute)
     )
 }
 
