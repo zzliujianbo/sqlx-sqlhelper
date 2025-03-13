@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use inflector::Inflector;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
