@@ -63,7 +63,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         field_to_sql_quote(&id.to_string())
     );
     let find_fn = quote!(
-        pub async fn find(#id: i32) -> Result<Self, sqlx::Error> {
+        pub async fn find_by_id(#id: i32) -> Result<Self, sqlx::Error> {
             //sqlx::query_as::<_, Self>(&format!(
             //    "SELECT * FROM {} WHERE id = ?",
             //    stringify!(#struct_name)
@@ -131,7 +131,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             let last_id = #query(sql)
             #(#insert_bind_quote_vec)*
             .execute(#pool).await?.last_insert_id();
-            Self::find(last_id as i32).await
+            Self::find_by_id(last_id as i32).await
         }
 
         /// 如果定义的`create_time`，`update_time`字段是`Default::default()`默认值，则更新为当前时间
