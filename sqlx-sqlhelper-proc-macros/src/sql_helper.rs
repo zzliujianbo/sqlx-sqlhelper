@@ -317,24 +317,25 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     );
 
     let tran_insert_fn = quote!(
-        pub async fn tran_insert(&self, tx: &mut sqlx::Transaction<'_>) -> Result<Self, sqlx::Error> {
+        pub async fn tran_insert(&mut self, tx: &mut sqlx::Transaction<'_, sqlx::MySql>) -> Result<i32, sqlx::Error> {
             let sql = #insert_sql;
             let last_id = #query(sql)
             #(#insert_bind_quote_vec)*
-            .execute(tx)
+            .execute(&mut **tx)
             .await?
             .last_insert_id();
-            Self::get_by_id(last_id as i32).await
+            self.#id = last_id as i32;
+            Ok(self.#id)
         }
     );
 
     let tran_update_fn = quote!(
-        pub async fn tran_update(&self, tx: &mut sqlx::Transaction<'_>) -> Result<bool, sqlx::Error> {
+        pub async fn tran_update(&self, tx: &mut sqlx::Transaction<'_, sqlx::MySql>) -> Result<bool, sqlx::Error> {
             let sql = #update_sql;
             #query(sql)
             #(#update_bind_quote_vec)*
             .bind(self.#id)
-            .execute(tx)
+            .execute(&mut **tx)
             .await.map(|f|f.rows_affected() > 0)
         }
     );
