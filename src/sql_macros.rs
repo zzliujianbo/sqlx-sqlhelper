@@ -16,7 +16,7 @@
 macro_rules! sql_args {
 
     ($sql:expr) => {
-        sql_args!($sql);
+        sql_args!($sql,);
     };
 
     ($sql:expr, $($args:expr),*) => {{
@@ -34,7 +34,7 @@ macro_rules! sql_args {
 #[macro_export]
 macro_rules! query_one {
     ($sql:expr) => {
-        sqlx::query($sql)
+        query_one!($sql,);
     };
     ($sql:expr, $($args:expr),*) => {{
         let (sql, args) = sql_args!($sql, $($args),*);
@@ -47,7 +47,7 @@ macro_rules! query_one {
 #[macro_export]
 macro_rules! query_all {
     ($sql:expr) => {
-        sqlx::query($sql)
+        query_all!($sql,)
     };
     ($sql:expr, $($args:expr),*) => {{
         let (sql, args) = sql_args!($sql, $($args),*);

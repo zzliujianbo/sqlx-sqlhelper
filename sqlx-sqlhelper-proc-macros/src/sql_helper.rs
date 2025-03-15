@@ -339,6 +339,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             .await.map(|f|f.rows_affected() > 0)
         }
     );
+
     let id_in_sql = format!(
         "{} WHERE {} IN ({{}})",
         select_base_sql,
@@ -353,6 +354,25 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             #query_as(&sql)
             .fetch_all(#pool)
             .await
+        }
+    };
+
+    let list_by_sql = format!("{} WHERE 1=1 {{}}", select_base_sql);
+
+    let list_by_fn = quote! {
+        pub async fn list_by(where_sql: &str, args: sqlx::mysql::MySqlArguments) -> Result<Vec<Self>, sqlx::Error> {
+            let sql = format!(#list_by_sql, where_sql);
+            sqlx::query_as_with::<_, Self, sqlx::mysql::MySqlArguments>(&sql, args)
+                        .fetch_all(#pool)
+                        .await
+        }
+    };
+
+    let select_sql = format!("{} WHERE 1=1 {{}}", select_base_sql);
+
+    let select_sql_fn = quote! {
+        pub fn select_sql(where_sql: &str) -> String {
+            format!(#select_sql, where_sql)
         }
     };
 
@@ -381,6 +401,10 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             #tran_update_fn
 
             #id_in_fn
+
+            #list_by_fn
+
+            #select_sql_fn
         }
     );
     gen.into()
