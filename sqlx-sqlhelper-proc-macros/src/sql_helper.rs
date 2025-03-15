@@ -57,18 +57,18 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     let count_base_sql = format!("SELECT count(1) FROM {}", table_name);
 
     //查找函数
-    let find_sql = format!(
+    let get_by_id_sql = format!(
         "{} WHERE {} = ?",
         select_base_sql,
         field_to_sql_quote(&id.to_string())
     );
-    let find_fn = quote!(
-        pub async fn find_by_id(#id: i32) -> Result<Self, sqlx::Error> {
+    let get_by_id_fn = quote!(
+        pub async fn get_by_id(#id: i32) -> Result<Self, sqlx::Error> {
             //sqlx::query_as::<_, Self>(&format!(
             //    "SELECT * FROM {} WHERE id = ?",
             //    stringify!(#struct_name)
             //))
-            #query_as(#find_sql)
+            #query_as(#get_by_id_sql)
             .bind(#id)
             .fetch_one(#pool)
             .await
@@ -131,7 +131,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             let last_id = #query(sql)
             #(#insert_bind_quote_vec)*
             .execute(#pool).await?.last_insert_id();
-            Self::find_by_id(last_id as i32).await
+            Self::get_by_id(last_id as i32).await
         }
 
         /// 如果定义的`create_time`，`update_time`字段是`Default::default()`默认值，则更新为当前时间
@@ -318,7 +318,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
 
     let gen = quote!(
         impl #struct_name {
-            #find_fn
+            #get_by_id_fn
 
             #list_fn
 

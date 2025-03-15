@@ -10,7 +10,7 @@ pub(crate) const DEFAULT_UPDATE_TIME_NAME: &str = "update_time";
 
 /// 自动生成mysql数据库增删改查方法
 ///
-/// 基于sqlx生成`find`、`list`、`delete`、`add`、`update`、`save_or_update`、`new`、`new_common`、`base_page`、`base_count`等方法。
+/// 基于sqlx生成`get_by_id`、`list`、`delete`、`add`、`update`、`save_or_update`、`new`、`new_common`、`base_page`、`base_count`等方法。
 ///
 ///
 /// 需要在struct上下文中引入sqlx的db对象。

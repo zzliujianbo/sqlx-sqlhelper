@@ -8,11 +8,11 @@ chrono = "0.4.23"
 ```
 ## 实现的宏
 ### SqlHelper
-`SqlHelper`是`derive`过程宏。主要实现了`struct`的`find`、`list`、`delete`、`add`、`update`、`save_or_update`、`new`、`new_common`、`base_page`、`base_count`等常用查询方法。
+`SqlHelper`是`derive`过程宏。主要实现了`struct`的`get_by_id`、`list`、`delete`、`add`、`update`、`save_or_update`、`new`、`new_common`、`base_page`、`base_count`等常用查询方法。
 
 |属性|描述|
 |:--|:--|
-|#[id]|主键字段，`find`、`delete`、`save_or_update`等方法会以此字段增删改查等。|
+|#[id]|主键字段，`get_by_id`、`delete`、`save_or_update`等方法会以此字段增删改查等。|
 |#[create_time]|表示当前字段为create_time字段，`insert_auto_time`、`save_or_update_auto_time`等带`auto_time`后缀会自动更新`create_time`字段|
 |#[update_time]|和`create_time`属性同理。|
 
@@ -92,7 +92,7 @@ SqlHelper宏展开之后的代码。
 // ========================================
 
 impl User {
-    pub async fn find(id: i32) -> Result<Self, sqlx::Error> {
+    pub async fn get_by_id(id: i32) -> Result<Self, sqlx::Error> {
         sqlx::query_as:: <_,Self>("SELECT id, account, pwd, login_token, login_token_expire_date, last_login_time, last_login_ip, create_time, update_time FROM user WHERE id = ?").bind(id).fetch_one(& *db::POOL).await
     }
     pub async fn list() -> Result<Vec<Self>, sqlx::Error> {
@@ -119,7 +119,7 @@ impl User {
             .execute(&*db::POOL)
             .await?
             .last_insert_id();
-        Self::find(last_id as i32).await
+        Self::get_by_id(last_id as i32).await
     }
     #[doc = r" 如果定义的`create_time`，`update_time`字段是`Default::default()`默认值，则更新为当前时间"]
     #[doc = r""]
