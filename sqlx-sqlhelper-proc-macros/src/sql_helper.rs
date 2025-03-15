@@ -339,6 +339,22 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             .await.map(|f|f.rows_affected() > 0)
         }
     );
+    let id_in_sql = format!(
+        "{} WHERE {} IN ({{}})",
+        select_base_sql,
+        field_to_sql_quote(&id.to_string()),
+    );
+    let id_in_fn = quote! {
+        pub async fn id_in(ids: Vec<i32>) -> Result<Vec<Self>, sqlx::Error> {
+            let sql = format!(
+                #id_in_sql,
+                ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(", ")
+            );
+            #query_as(&sql)
+            .fetch_all(#pool)
+            .await
+        }
+    };
 
     let gen = quote!(
         impl #struct_name {
@@ -363,6 +379,8 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             #tran_insert_fn
 
             #tran_update_fn
+
+            #id_in_fn
         }
     );
     gen.into()
