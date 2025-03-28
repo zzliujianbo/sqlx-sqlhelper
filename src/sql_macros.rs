@@ -69,3 +69,17 @@ macro_rules! execute {
             .await
     }};
 }
+
+#[macro_export]
+macro_rules! tran_execute {
+    ($tran:expr, $sql:expr) => {
+        execute!($tran, $sql,)
+    };
+    ($tran:expr, $sql:expr, $($args:expr),*) => {{
+        let (sql, args) = sql_args!($sql, $($args),*);
+        sqlx::query_with::<_, sqlx::mysql::MySqlArguments>(&sql, args)
+            .execute(&mut **$tran)
+            .await
+    }};
+}
+
