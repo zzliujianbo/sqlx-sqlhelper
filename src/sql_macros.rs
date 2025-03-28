@@ -56,3 +56,16 @@ macro_rules! query_all {
             .await
     }};
 }
+
+#[macro_export]
+macro_rules! execute {
+    ($sql:expr) => {
+        execute!($sql,)
+    };
+    ($sql:expr, $($args:expr),*) => {{
+        let (sql, args) = sql_args!($sql, $($args),*);
+        sqlx::query_with::<_, sqlx::mysql::MySqlArguments>(&sql, args)
+            .execute(&*db::POOL)
+            .await
+    }};
+}
