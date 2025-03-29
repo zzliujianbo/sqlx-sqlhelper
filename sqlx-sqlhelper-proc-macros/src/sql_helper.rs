@@ -126,12 +126,13 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
     //    Self::find(last_id as i32).await
     //}
     let insert_fn = quote!(
-        pub async fn insert(&self) -> Result<Self, sqlx::Error> {
+        pub async fn insert(&mut self) -> Result<Self, sqlx::Error> {
             let sql = #insert_sql;
             let last_id = #query(sql)
             #(#insert_bind_quote_vec)*
             .execute(#pool).await?.last_insert_id();
-            Self::get_by_id(last_id as i32).await
+            self.#id = last_id as i32;
+            Self::get_by_id(self.#id).await
         }
 
         /// 如果定义的`create_time`，`update_time`字段是`Default::default()`默认值，则更新为当前时间
@@ -184,7 +185,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         /// `save_or_update`只是简单判断id是否大于0，大于0则更新，小于等于0则插入。
         ///
         /// 此时如果手动将`id`赋值为大于0时，会出现更新其他数据的情况，请注意这一块。
-        pub async fn save_or_update(&self) -> Result<bool, sqlx::Error> {
+        pub async fn save_or_update(&mut self) -> Result<bool, sqlx::Error> {
             match self.#id > 0 {
                 true => self.update().await,
                 //false => Self::add(self).await.map(|_| true),
