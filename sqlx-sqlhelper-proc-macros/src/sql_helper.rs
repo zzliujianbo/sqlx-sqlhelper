@@ -341,15 +341,15 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         }
     );
 
-    let id_in_sql = format!(
+    let get_by_id_in_sql = format!(
         "{} WHERE {} IN ({{}})",
         select_base_sql,
         field_to_sql_quote(&id.to_string()),
     );
-    let id_in_fn = quote! {
-        pub async fn id_in(ids: Vec<i32>) -> Result<Vec<Self>, sqlx::Error> {
+    let get_by_id_in_fn = quote! {
+        pub async fn get_by_id_in(ids: Vec<i32>) -> Result<Vec<Self>, sqlx::Error> {
             let sql = format!(
-                #id_in_sql,
+                #get_by_id_in_sql,
                 ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(", ")
             );
             #query_as(&sql)
@@ -401,7 +401,7 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
 
             #tran_update_fn
 
-            #id_in_fn
+            #get_by_id_in_fn
 
             #list_by_fn
 
