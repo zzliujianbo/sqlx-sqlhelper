@@ -100,6 +100,16 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
         }
     );
 
+    let delete_by_id_fn = quote!(
+        pub async fn delete_by_id(#id: i32) -> Result<bool, sqlx::Error> {
+            #query(#delete_sql)
+            .bind(#id)
+            .execute(#pool)
+            .await
+            .map(|f| f.rows_affected() > 0)
+        }
+    );
+
     //新增函数
     let insert_sql = format!(
         "INSERT INTO {} ({}) VALUES({})",
@@ -384,6 +394,8 @@ pub fn impl_sql_helper(ast: &ItemStruct) -> TokenStream {
             #list_fn
 
             #delete_fn
+
+            #delete_by_id_fn
 
             #insert_fn
 
