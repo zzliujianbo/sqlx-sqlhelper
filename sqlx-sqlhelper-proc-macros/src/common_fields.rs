@@ -39,17 +39,17 @@ pub fn impl_common_fields(ast: &mut ItemStruct) -> TokenStream {
             let add_fields = vec![
                 quote!(
                       #[id]
-                      #[oai(read_only)]
+                    //   #[oai(read_only)]
                       pub #id_ident:i32
                 ),
                 quote!(
                       #[create_time]
-                      #[oai(read_only)]
+                    //   #[oai(read_only)]
                       pub #create_time_ident:NaiveDateTime
                 ),
                 quote!(
                       #[update_time]
-                      #[oai(read_only)]
+                    //   #[oai(read_only)]
                       pub #update_time_ident:NaiveDateTime
                 ),
             ];
