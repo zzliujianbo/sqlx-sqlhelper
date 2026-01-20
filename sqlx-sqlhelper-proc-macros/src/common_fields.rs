@@ -17,13 +17,13 @@ pub fn impl_common_fields(ast: &mut ItemStruct) -> TokenStream {
         return e.into_compile_error().into();
     }
 
-    let derive_vec = vec!["Object", "SqlHelper"];
+    let derive_vec = vec!["SqlHelper"];
 
     for derive_name in derive_vec {
         if !check_derive(&ast.attrs, derive_name) {
             return Error::new(
                 ast.ident.span(),
-                format!("add {} derive [common_fields]", derive_name),
+                format!("derive[{}] not add; [common_fields]", derive_name),
             )
             .into_compile_error()
             .into();
